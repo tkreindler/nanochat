@@ -10,6 +10,23 @@
 # 3) Example launch with wandb logging, but see below for setting up wandb first:
 # WANDB_RUN=speedrun screen -L -Logfile speedrun.log -S speedrun bash speedrun.sh
 
+# Default intermediate artifacts directory is in ~/.cache/nanochat
+export OMP_NUM_THREADS=1
+export NANOCHAT_BASE_DIR="$HOME/.cache/nanochat"
+mkdir -p $NANOCHAT_BASE_DIR
+
+# -----------------------------------------------------------------------------
+# Python venv setup with uv
+
+# install uv (if not already installed)
+command -v uv &> /dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
+# create a .venv local virtual environment (if it doesn't exist)
+[ -d ".venv" ] || uv venv
+# install the repo dependencies
+uv sync --extra cuda
+# activate venv so that `python` uses the project's venv instead of system python
+source .venv/bin/activate
+
 # -----------------------------------------------------------------------------
 # wandb setup
 # If you wish to use wandb for logging (it's nice!, recommended).
@@ -30,6 +47,10 @@ python -m nanochat.report reset
 
 # -----------------------------------------------------------------------------
 # Tokenizer
+
+# Install Rust / Cargo
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+source "$HOME/.cargo/env"
 
 # Build the rustbpe Tokenizer
 uv run maturin develop --release --manifest-path rustbpe/Cargo.toml
@@ -71,11 +92,11 @@ echo "Waiting for dataset download to complete..."
 wait $DATASET_DOWNLOAD_PID
 
 # pretrain the d20 model
-torchrun --standalone --nproc_per_node=auto -m scripts.base_train -- --run=$WANDB_RUN
+torchrun --standalone --nproc_per_node=8 -m scripts.base_train -- --depth=20 --run=$WANDB_RUN
 # evaluate the model on a larger chunk of train/val data and draw some samples
-torchrun --standalone --nproc_per_node=auto -m scripts.base_loss
+torchrun --standalone --nproc_per_node=8 -m scripts.base_loss
 # evaluate the model on CORE tasks
-torchrun --standalone --nproc_per_node=auto -m scripts.base_eval
+torchrun --standalone --nproc_per_node=8 -m scripts.base_eval
 
 # -----------------------------------------------------------------------------
 # Midtraining (teach the model conversation special tokens, tool use, multiple choice)
@@ -85,15 +106,15 @@ torchrun --standalone --nproc_per_node=auto -m scripts.base_eval
 curl -L -o $NANOCHAT_BASE_DIR/identity_conversations.jsonl https://karpathy-public.s3.us-west-2.amazonaws.com/identity_conversations.jsonl
 
 # run midtraining and eval the model
-torchrun --standalone --nproc_per_node=auto -m scripts.mid_train -- --run=$WANDB_RUN
-torchrun --standalone --nproc_per_node=auto -m scripts.chat_eval -- -i mid
+torchrun --standalone --nproc_per_node=8 -m scripts.mid_train -- --run=$WANDB_RUN
+torchrun --standalone --nproc_per_node=8 -m scripts.chat_eval -- -i mid
 
 # -----------------------------------------------------------------------------
 # Supervised Finetuning (domain adaptation to each sequence all by itself per row)
 
 # train sft and re-eval right away (should see a small bump)
-torchrun --standalone --nproc_per_node=auto -m scripts.chat_sft -- --run=$WANDB_RUN
-torchrun --standalone --nproc_per_node=auto -m scripts.chat_eval -- -i sft
+torchrun --standalone --nproc_per_node=8 -m scripts.chat_sft -- --run=$WANDB_RUN
+torchrun --standalone --nproc_per_node=8 -m scripts.chat_eval -- -i sft
 
 # chat with the model over CLI! Leave out the -p to chat interactively
 # python -m scripts.chat_cli -p "Why is the sky blue?"
@@ -106,9 +127,9 @@ torchrun --standalone --nproc_per_node=auto -m scripts.chat_eval -- -i sft
 # (optional)
 
 # run reinforcement learning
-# torchrun --standalone --nproc_per_node=auto -m scripts.chat_rl -- --run=$WANDB_RUN
+# torchrun --standalone --nproc_per_node=8 -m scripts.chat_rl -- --run=$WANDB_RUN
 # eval the RL model only on GSM8K
-# torchrun --standalone --nproc_per_node=auto -m scripts.chat_eval -- -i rl -a GSM8K
+# torchrun --standalone --nproc_per_node=8 -m scripts.chat_eval -- -i rl -a GSM8K
 
 # -----------------------------------------------------------------------------
 # Generate the full report by putting together all the sections
