@@ -17,7 +17,7 @@ command -v uv &> /dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # check if there's a Nvidia GPU installed (even if it's a mediocre one), if so still use CUDA
 if nvidia-smi -L >/dev/null 2>&1; then
-  uv sync --extra gpu
+  uv sync --extra cuda
 else
   uv sync --extra cpu
 fi

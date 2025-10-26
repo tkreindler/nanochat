@@ -48,7 +48,7 @@ python_functions = ["test_*"]
 [tool.uv.sources]
 torch = [  
     { index = "pytorch-cpu", extra = "cpu" },  
-    { index = "pytorch-cu128", extra = "gpu" },  
+    { index = "pytorch-cu128", extra = "cuda" },  
 ]
 
 [[tool.uv.index]]  
@@ -65,7 +65,7 @@ explicit = true
 cpu = [  
     "torch>=2.8.0",  
 ]  
-gpu = [  
+cuda = [  
     "torch>=2.8.0",  
 ]  
   
@@ -73,6 +73,6 @@ gpu = [
 conflicts = [  
     [  
         { extra = "cpu" },  
-        { extra = "gpu" },  
+        { extra = "cuda" },  
     ],  
 ]  
