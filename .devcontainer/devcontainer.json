@@ -22,9 +22,13 @@
 	// Bootstrap uv for the container
 	"postCreateCommand": "dev/bootstrap.ps1",
 
+	"containerEnv": {
+		// Set this home directory to be the root env install for uv
+		"UV_PROJECT_ENVIRONMENT": "/home/vscode/.venv"
+	},
 	"remoteEnv": {
 		// Add the uv python configuration to the PATH
-		"PATH": "${containerEnv:PATH}:/home/vscode/.venv/bin"
+		"PATH": "${containerEnv:UV_PROJECT_ENVIRONMENT}/bin:${containerEnv:PATH}"
 	},
 	
 	// Pass-through the GPU for CUDA if one is available
