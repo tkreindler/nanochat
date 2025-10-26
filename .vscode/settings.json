@@ -1,4 +1,7 @@
 {
     // Fix for annoying python extension regression: https://github.com/microsoft/vscode-python/issues/25467
-    "python.terminal.shellIntegration.enabled": false
+    "python.terminal.shellIntegration.enabled": false,
+
+    // We manually added the correct environment to the PATH
+    "python.terminal.activateEnvironment": false
 }
