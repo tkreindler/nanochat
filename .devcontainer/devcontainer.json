@@ -11,6 +11,8 @@
 		// Everythong else gets installed automatically by uv
 	},
 
-	// Needed for GPU passthrough for CUDA in the container
-    "runArgs": ["--gpus=all"]
+	// Pass-through the GPU for CUDA if one is available
+	"hostRequirements": {
+		"gpu": "optional" 
+	}
 }
