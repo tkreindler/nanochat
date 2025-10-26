@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageVersion Include="TorchSharp" Version="0.105.1" />
+    <PackageVersion Include="TorchSharp-cuda-linux" Version="0.105.1" />
+  </ItemGroup>
+</Project>

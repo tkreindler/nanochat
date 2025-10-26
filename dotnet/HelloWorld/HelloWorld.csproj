@@ -8,8 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="TorchSharp" Version="0.105.1" />
-    <PackageReference Include="TorchSharp-cuda-linux" Version="0.105.1" />
+    <PackageReference Include="TorchSharp" />
+    <PackageReference Include="TorchSharp-cuda-linux" />
   </ItemGroup>
 
 </Project>
