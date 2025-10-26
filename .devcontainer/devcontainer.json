@@ -6,15 +6,9 @@
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	"features": {
 		// CUDA support with GPU passthrough
-		"ghcr.io/devcontainers/features/nvidia-cuda:2": {},
+		"ghcr.io/devcontainers/features/nvidia-cuda:2": {}
 
-		// Python
-		"ghcr.io/devcontainers/features/python:1": {
-			"version": "3.10" // sync with .python-version file
-		},
-
-		// (Optional) access to system's docker host
-		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+		// Everythong else gets installed automatically by uv
 	},
 
 	// Needed for GPU passthrough for CUDA in the container

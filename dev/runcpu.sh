@@ -14,7 +14,14 @@ NANOCHAT_BASE_DIR="$HOME/.cache/nanochat"
 mkdir -p $NANOCHAT_BASE_DIR
 command -v uv &> /dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
 [ -d ".venv" ] || uv venv
-uv sync --extra cpu
+
+# check if there's a Nvidia GPU installed (even if it's a mediocre one), if so still use CUDA
+if nvidia-smi -L >/dev/null 2>&1; then
+  uv sync --extra gpu
+else
+  uv sync --extra cpu
+fi
+
 source .venv/bin/activate
 if [ -z "$WANDB_RUN" ]; then
     WANDB_RUN=dummy
