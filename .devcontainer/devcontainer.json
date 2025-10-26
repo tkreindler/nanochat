@@ -13,6 +13,12 @@
 		// Rust for the tokenizer
 		"ghcr.io/devcontainers/features/rust:1": {},
 
+		// .Net for c# conversion
+		"ghcr.io/devcontainers/features/dotnet:2": {},
+
+		// OpenCode AI assistant
+		"ghcr.io/jsburckhardt/devcontainer-features/opencode:1": {},
+
 		// Bootstrap uv in the container
 		"ghcr.io/devcontainers-extra/features/uv:1": {}
 
