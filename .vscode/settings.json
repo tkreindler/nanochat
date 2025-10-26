@@ -3,5 +3,6 @@
     "python.terminal.shellIntegration.enabled": false,
 
     // We manually added the correct environment to the PATH
-    "python.terminal.activateEnvironment": false
+    "python.terminal.activateEnvironment": true,
+    "python.terminal.activateEnvInCurrentTerminal": true,
 }

@@ -24,7 +24,10 @@
 
 	"containerEnv": {
 		// Set this home directory to be the root env install for uv
-		"UV_PROJECT_ENVIRONMENT": "/home/vscode/.venv"
+		"UV_PROJECT_ENVIRONMENT": "/workspaces/nanochat/.venv",
+
+		// Set a folder on your main drive to cache the outputs
+		"NANOCHAT_BASE_DIR": "/workspaces/nanochat/.nanochat-cache"
 	},
 	"remoteEnv": {
 		// Add the uv python configuration to the PATH

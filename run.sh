@@ -71,7 +71,7 @@ echo "Waiting for dataset download to complete..."
 wait $DATASET_DOWNLOAD_PID
 
 # pretrain the d20 model
-torchrun --standalone --nproc_per_node=auto -m scripts.base_train -- --depth=20 --run=$WANDB_RUN
+torchrun --standalone --nproc_per_node=auto -m scripts.base_train -- --run=$WANDB_RUN
 # evaluate the model on a larger chunk of train/val data and draw some samples
 torchrun --standalone --nproc_per_node=auto -m scripts.base_loss
 # evaluate the model on CORE tasks
