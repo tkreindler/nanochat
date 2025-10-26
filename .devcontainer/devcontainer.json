@@ -50,7 +50,8 @@
 			"extensions": [
 				"ms-python.python",
 				"ms-vscode.powershell",
-				"rust-lang.rust-analyzer"
+				"rust-lang.rust-analyzer",
+				"ms-dotnettools.csdevkit"
 			]
 		}
 	}

@@ -7,3 +7,6 @@ report*.md
 eval_bundle/
 wandb/
 .*cache/
+bin/
+obj/
+objd/
