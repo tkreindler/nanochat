@@ -1,0 +1,4 @@
+{
+    // Fix for annoying python extension regression: https://github.com/microsoft/vscode-python/issues/25467
+    "python.terminal.shellIntegration.enabled": false
+}

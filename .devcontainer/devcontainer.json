@@ -2,17 +2,43 @@
 {
 	"name": "Ubuntu",
 	"image": "mcr.microsoft.com/devcontainers/base:noble",
-
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	"features": {
 		// CUDA support with GPU passthrough
-		"ghcr.io/devcontainers/features/nvidia-cuda:2": {}
+		"ghcr.io/devcontainers/features/nvidia-cuda:2": {},
 
-		// Everythong else gets installed automatically by uv
+		// Powershell for scripting
+		"ghcr.io/devcontainers/features/powershell:1": {},
+
+		// Rust for the tokenizer
+		"ghcr.io/devcontainers/features/rust:1": {},
+
+		// Bootstrap uv in the container
+		"ghcr.io/devcontainers-extra/features/uv:1": {}
+
+		// Everything else (python and pytorch stuff) gets taken care of by uv
 	},
 
+	// Bootstrap uv for the container
+	"postCreateCommand": "dev/bootstrap.ps1",
+
+	"remoteEnv": {
+		// Add the uv python configuration to the PATH
+		"PATH": "${containerEnv:PATH}:/home/vscode/.venv/bin"
+	},
+	
 	// Pass-through the GPU for CUDA if one is available
 	"hostRequirements": {
-		"gpu": "optional" 
+		"gpu": "optional"
+	},
+
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"ms-vscode.powershell",
+				"rust-lang.rust-analyzer"
+			]
+		}
 	}
 }

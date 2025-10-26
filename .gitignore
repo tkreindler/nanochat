@@ -3,5 +3,5 @@ __pycache__/
 *.pyc
 rustbpe/target/
 dev-ignore/
-report.md
+report*.md
 eval_bundle/
