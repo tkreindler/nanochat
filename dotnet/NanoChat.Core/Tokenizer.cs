@@ -75,6 +75,33 @@ public interface ITokenizer
     /// Get the string representation of a single token ID
     /// </summary>
     string IdToToken(int id);
+
+    /// <summary>
+    /// Render a conversation for training (SFT).
+    /// Returns token IDs and a mask where 1 indicates tokens the assistant should learn from.
+    /// </summary>
+    /// <param name="conversation">The conversation to render</param>
+    /// <param name="maxTokens">Maximum number of tokens to return</param>
+    /// <returns>A tuple of (token IDs, mask values)</returns>
+    (List<int> ids, List<int> mask) RenderConversation(Conversation conversation, int maxTokens = 2048);
+
+    /// <summary>
+    /// Render a conversation for completion (RL/inference).
+    /// Removes the last assistant message and adds assistant_start token.
+    /// </summary>
+    /// <param name="conversation">The conversation to render</param>
+    /// <returns>Token IDs ready for completion</returns>
+    List<int> RenderForCompletion(Conversation conversation);
+
+    /// <summary>
+    /// Visualize tokenization with color coding (for debugging).
+    /// Green = assistant tokens (mask=1), Red = user/system tokens (mask=0).
+    /// </summary>
+    /// <param name="ids">Token IDs</param>
+    /// <param name="mask">Mask values</param>
+    /// <param name="withTokenId">Include token IDs in output</param>
+    /// <returns>Formatted string with color codes</returns>
+    string VisualizeTokenization(List<int> ids, List<int> mask, bool withTokenId = false);
 }
 
 /// <summary>
@@ -166,6 +193,190 @@ public class StubTokenizer : ITokenizer
             return System.Text.Encoding.UTF8.GetString(new[] { (byte)id });
         
         return $"<{id}>";
+    }
+
+    public (List<int> ids, List<int> mask) RenderConversation(Conversation conversation, int maxTokens = 2048)
+    {
+        conversation.Validate();
+
+        var ids = new List<int>();
+        var mask = new List<int>();
+
+        void AddTokens(List<int> tokenIds, int maskValue)
+        {
+            ids.AddRange(tokenIds);
+            mask.AddRange(Enumerable.Repeat(maskValue, tokenIds.Count));
+        }
+
+        void AddToken(int tokenId, int maskValue)
+        {
+            ids.Add(tokenId);
+            mask.Add(maskValue);
+        }
+
+        // Handle system message by merging with first user message
+        var messages = conversation.Messages;
+        if (conversation.HasSystemMessage)
+        {
+            var systemMessage = messages[0];
+            var firstUserMessage = messages[1];
+            
+            if (firstUserMessage.Role != "user")
+                throw new InvalidOperationException("System message must be followed by a user message");
+
+            // Create merged content
+            string mergedContent = systemMessage.GetStringContent() + "\n\n" + firstUserMessage.GetStringContent();
+            
+            // Create a new message list starting from index 1 with merged content
+            var mergedFirstUser = new Message 
+            { 
+                Role = "user", 
+                Content = mergedContent 
+            };
+            
+            messages = new List<Message> { mergedFirstUser };
+            messages.AddRange(conversation.Messages.Skip(2));
+        }
+
+        // Get special token IDs
+        int bos = BosTokenId;
+        int userStart = EncodeSpecial(SpecialTokens.UserStart);
+        int userEnd = EncodeSpecial(SpecialTokens.UserEnd);
+        int assistantStart = EncodeSpecial(SpecialTokens.AssistantStart);
+        int assistantEnd = EncodeSpecial(SpecialTokens.AssistantEnd);
+        int pythonStart = EncodeSpecial(SpecialTokens.PythonStart);
+        int pythonEnd = EncodeSpecial(SpecialTokens.PythonEnd);
+        int outputStart = EncodeSpecial(SpecialTokens.OutputStart);
+        int outputEnd = EncodeSpecial(SpecialTokens.OutputEnd);
+
+        // Add BOS token
+        AddToken(bos, 0);
+
+        // Process each message
+        for (int i = 0; i < messages.Count; i++)
+        {
+            var message = messages[i];
+            string expectedRole = i % 2 == 0 ? "user" : "assistant";
+            
+            if (message.Role != expectedRole)
+                throw new InvalidOperationException(
+                    $"Message {i} has role '{message.Role}' but should be '{expectedRole}'");
+
+            if (message.Role == "user")
+            {
+                if (!message.IsSimpleString)
+                    throw new InvalidOperationException("User messages must be simple strings");
+
+                var content = message.GetStringContent();
+                var valueIds = Encode(content);
+                
+                AddToken(userStart, 0);
+                AddTokens(valueIds, 0);
+                AddToken(userEnd, 0);
+            }
+            else if (message.Role == "assistant")
+            {
+                AddToken(assistantStart, 0);
+                
+                if (message.IsSimpleString)
+                {
+                    // Simple string content
+                    var content = message.GetStringContent();
+                    var valueIds = Encode(content);
+                    AddTokens(valueIds, 1);
+                }
+                else
+                {
+                    // Structured content with parts
+                    var parts = message.GetStructuredContent();
+                    foreach (var part in parts)
+                    {
+                        var valueIds = Encode(part.Text);
+                        
+                        switch (part.Type)
+                        {
+                            case "text":
+                                AddTokens(valueIds, 1);
+                                break;
+                            case "python":
+                                AddToken(pythonStart, 1);
+                                AddTokens(valueIds, 1);
+                                AddToken(pythonEnd, 1);
+                                break;
+                            case "python_output":
+                                // Python output is not supervised (mask = 0)
+                                AddToken(outputStart, 0);
+                                AddTokens(valueIds, 0);
+                                AddToken(outputEnd, 0);
+                                break;
+                            default:
+                                throw new InvalidOperationException($"Unknown part type: {part.Type}");
+                        }
+                    }
+                }
+                
+                AddToken(assistantEnd, 1);
+            }
+        }
+
+        // Truncate to max_tokens if necessary
+        if (ids.Count > maxTokens)
+        {
+            ids = ids.Take(maxTokens).ToList();
+            mask = mask.Take(maxTokens).ToList();
+        }
+
+        return (ids, mask);
+    }
+
+    public List<int> RenderForCompletion(Conversation conversation)
+    {
+        // Remove the last message (must be from assistant)
+        if (conversation.Messages.Count == 0 || conversation.Messages[^1].Role != "assistant")
+            throw new InvalidOperationException("Conversation must have at least one message and last message must be from assistant");
+
+        // Create a modified conversation without the last message
+        var modifiedConversation = new Conversation
+        {
+            Messages = conversation.Messages.Take(conversation.Messages.Count - 1).ToList()
+        };
+
+        // Render the conversation (without the last assistant message)
+        var (ids, _) = RenderConversation(modifiedConversation);
+
+        // Add assistant_start token to prime for completion
+        int assistantStart = EncodeSpecial(SpecialTokens.AssistantStart);
+        ids.Add(assistantStart);
+
+        return ids;
+    }
+
+    public string VisualizeTokenization(List<int> ids, List<int> mask, bool withTokenId = false)
+    {
+        const string Red = "\u001b[91m";
+        const string Green = "\u001b[92m";
+        const string Reset = "\u001b[0m";
+        const string Gray = "\u001b[90m";
+
+        var tokens = new List<string>();
+        
+        for (int i = 0; i < ids.Count; i++)
+        {
+            int tokenId = ids[i];
+            int maskVal = mask[i];
+            
+            string tokenStr = Decode(new List<int> { tokenId });
+            string color = maskVal == 1 ? Green : Red;
+            
+            tokens.Add($"{color}{tokenStr}{Reset}");
+            
+            if (withTokenId)
+            {
+                tokens.Add($"{Gray}({tokenId}){Reset}");
+            }
+        }
+        
+        return string.Join("|", tokens);
     }
 
     public static StubTokenizer FromDirectory(string tokenizerDir)

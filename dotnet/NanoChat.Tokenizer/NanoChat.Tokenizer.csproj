@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SharpToken" />
+    <PackageReference Include="TorchSharp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NanoChat.Core\NanoChat.Core.csproj" />
+  </ItemGroup>
+
+</Project>

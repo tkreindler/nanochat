@@ -86,4 +86,7 @@ Console.WriteLine($"Weights changed: {Math.Abs(finalWeightSum - initialWeightSum
 // Run checkpoint test
 TrainingTest.CheckpointTest.TestCheckpointSaveLoad();
 
+// Run conversation rendering tests
+TrainingTest.ConversationTest.TestConversationRendering();
+
 Console.WriteLine("\n=== All tests completed successfully! ===");
