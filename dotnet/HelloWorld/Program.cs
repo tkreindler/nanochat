@@ -1,47 +1,67 @@
 using TorchSharp;
 using static TorchSharp.torch;
+using NanoChat.Core;
 
-Console.WriteLine("TorchSharp GPU Test");
+Console.WriteLine("=== NanoChat Inference Test ===");
 Console.WriteLine($"CUDA Available: {cuda.is_available()}");
 
 if (!cuda.is_available())
 {
-    Console.WriteLine("ERROR: CUDA is not available!");
-    return;
+    Console.WriteLine("WARNING: CUDA is not available! Using CPU.");
 }
 
 Console.WriteLine($"CUDA Device Count: {cuda.device_count()}");
 
-// Set default device to CUDA
-var device = CUDA;
+// Set device
+var device = cuda.is_available() ? CUDA : CPU;
 Console.WriteLine($"\nUsing device: {device}");
 
-// Create tensors on GPU
-var x = tensor([1.0f, 2.0f, 3.0f, 4.0f, 5.0f], device: device);
-Console.WriteLine($"\nTensor on GPU: {x}");
-Console.WriteLine($"Device: {x.device}");
+// Create a small GPT model for testing
+Console.WriteLine("\nCreating GPT model...");
+var config = new GPTConfig
+{
+    VocabSize = 50304,
+    NLayer = 2,        // Small model for testing
+    NHead = 4,
+    NEmbd = 128,
+    NKVHead = 4,
+    SequenceLen = 256
+};
 
-// Perform operations on GPU
-var y = x * 2;
-Console.WriteLine($"\nTensor * 2: {y}");
-Console.WriteLine($"Device: {y.device}");
+using var model = new GPT(config);
+model.to(device);
+model.eval();
 
-var sum = x.sum();
-Console.WriteLine($"\nSum: {sum}");
-Console.WriteLine($"Device: {sum.device}");
+Console.WriteLine($"Model created with {config.VocabSize} vocab size, {config.NLayer} layers");
 
-// Create a larger matrix for more substantial GPU computation
-var matrix1 = randn(1000, 1000, device: device);
-var matrix2 = randn(1000, 1000, device: device);
+// Create tokenizer
+var tokenizer = new StubTokenizer(config.VocabSize);
+Console.WriteLine($"Tokenizer created with vocab size: {tokenizer.VocabSize}");
 
-Console.WriteLine($"\nPerforming matrix multiplication on GPU (1000x1000)...");
-var startTime = DateTime.Now;
-var result = matrix1.matmul(matrix2);
-var elapsed = (DateTime.Now - startTime).TotalMilliseconds;
+// Create engine
+var engine = new Engine(model, tokenizer);
+Console.WriteLine("Engine created");
 
-Console.WriteLine($"Matrix multiplication completed in {elapsed:F2} ms");
-Console.WriteLine($"Result shape: {result.shape[0]}x{result.shape[1]}");
-Console.WriteLine($"Result device: {result.device}");
-Console.WriteLine($"First element: {result[0, 0]}");
+// Test generation with dummy tokens
+Console.WriteLine("\nTesting generation...");
+var promptTokens = new List<long> { 1, 2, 3, 4, 5 }; // Dummy token IDs
+Console.WriteLine($"Input tokens: [{string.Join(", ", promptTokens)}]");
 
-Console.WriteLine("\nGPU test completed successfully!");
+Console.WriteLine("\nGenerating 10 tokens with temperature=0.8, topK=40...");
+var results = engine.GenerateBatch(
+    tokens: promptTokens,
+    numSamples: 2,
+    maxTokens: 10,
+    temperature: 0.8,
+    topK: 40,
+    seed: 42
+);
+
+Console.WriteLine($"\nGenerated {results.results.Count} samples:");
+for (int i = 0; i < results.results.Count; i++)
+{
+    Console.WriteLine($"  Sample {i + 1}: [{string.Join(", ", results.results[i])}]");
+    Console.WriteLine($"    Masks: [{string.Join(", ", results.masks[i])}]");
+}
+
+Console.WriteLine("\nInference test completed successfully!");

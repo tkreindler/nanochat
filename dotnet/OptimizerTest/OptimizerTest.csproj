@@ -12,8 +12,4 @@
     <PackageReference Include="TorchSharp-cuda-linux" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\NanoChat.Core\NanoChat.Core.csproj" />
-  </ItemGroup>
-
 </Project>
